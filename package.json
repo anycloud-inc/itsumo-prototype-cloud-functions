@@ -1,0 +1,21 @@
+{
+  "name": "itsumo-prototype-cloud-functions",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && functions-framework --target=scraping-rakuten-product-detail",
+    "deploy": "npm run build && gcloud functions deploy scraping-rakuten-product-detail --region=asia-northeast1 --runtime=nodejs18 --source=. --trigger-http --allow-unauthenticated --set-env-vars NODE_ENV=production"
+  },
+  "devDependencies": {
+    "@types/node": "^20.3.1",
+    "typescript": "^5.1.3"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.2.0",
+    "chrome-aws-lambda": "^10.1.0",
+    "puppeteer-core": "^10.4.0"
+  },
+  "private": true
+}
