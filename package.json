@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "start": "npm run build && functions-framework --target=scraping-rakuten-product-detail",
-    "deploy": "npm run build && gcloud functions deploy scraping-rakuten-product-detail --region=asia-northeast1 --runtime=nodejs18 --source=. --trigger-http --allow-unauthenticated --set-env-vars NODE_ENV=production"
+    "start:review": "npm run build && functions-framework --target=scraping-rakuten-product-reviews",
+    "deploy": "npm run build && gcloud functions deploy scraping-rakuten-product-detail --region=asia-northeast1 --runtime=nodejs18 --source=. --trigger-http --allow-unauthenticated --set-env-vars NODE_ENV=production",
+    "deploy:review": "npm run build && gcloud functions deploy scraping-rakuten-product-reviews --region=asia-northeast1 --runtime=nodejs18 --source=. --trigger-http --allow-unauthenticated --set-env-vars NODE_ENV=production"
   },
   "devDependencies": {
     "@types/node": "^20.3.1",
