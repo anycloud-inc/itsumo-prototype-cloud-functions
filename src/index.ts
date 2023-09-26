@@ -73,8 +73,8 @@ http("scraping-rakuten-product-reviews", async (req, res) => {
   const page = await browser.newPage()
   page.setDefaultNavigationTimeout(0)
   await page.goto(body.siteUrl)
-  await page.waitForSelector(".button--3SNaj") // レビューボタンが表示されるまで待つ
-  await page.click('a[href^="https://review.rakuten.co.jp"]')
+  await page.waitForSelector(".page_item_reviews") // レビューボタンが表示されるまで待つ
+  await page.click('a[href^="https://review.rakuten.co.jp/item"]')
 
   const reviewSortBtnClassName = ".revRvwSortTurn"
   // 参考になるレビュー順で表示するため、ソートボタンが表示されるまで待つ
