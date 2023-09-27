@@ -100,7 +100,38 @@ http("scraping-rakuten-product-reviews", async (req, res) => {
   const page = await browser.newPage()
   page.setDefaultNavigationTimeout(0)
   await page.goto(body.siteUrl)
-  await page.waitForSelector(".page_item_reviews") // レビューボタンが表示されるまで待つ
+
+  const isExistSelector = async (selector: string) => {
+    try {
+      await page.waitForSelector(selector, { timeout: 10000 })
+      return true
+    } catch (e) {
+      console.log(e)
+      return false
+    }
+  }
+
+  const isExistReviewLink = async () => {
+    const [pageItemReviews, reviewButton, reviewLink] = await Promise.all([
+      isExistSelector(".page_item_reviews"),
+      isExistSelector(".button--3SNaj"),
+      isExistSelector(".link--_SR9y"),
+    ])
+    return pageItemReviews || reviewButton || reviewLink
+  }
+
+  // レビューページのリンクを持つ要素が表示されるまで待つ
+  const isExistReviewLinkResult = await isExistReviewLink()
+  if (!isExistReviewLinkResult) {
+    await browser.close()
+    res.status(200).json({
+      comprehensiveEval: "",
+      totalEvalCount: "",
+      reviews: [],
+    })
+  }
+
+  // hrefに「https://review.rakuten.co.jp/item」を含む要素をクリックして、レビューページに遷移する
   await page.click('a[href^="https://review.rakuten.co.jp/item"]')
 
   const reviewSortBtnClassName = ".revRvwSortTurn"
