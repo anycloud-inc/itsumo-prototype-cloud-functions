@@ -21,16 +21,43 @@ http("scraping-rakuten-product-detail", async (req, res) => {
   const browser = await puppeteer.launch(options)
   const page = await browser.newPage()
   await page.goto(body.siteUrl)
-  await page.waitForSelector(".sale_desc")
 
-  const imageUrls = await page.$$eval("span.sale_desc img", (list) =>
-    list.map((el) => (el as HTMLImageElement).src)
-  )
+  const getImageUrls = async () => {
+    try {
+      await page.waitForSelector(".sale_desc", { timeout: 10000 })
+      return await page.$$eval("span.sale_desc img", (list) =>
+        list.map((el) => (el as HTMLImageElement).src)
+      )
+    } catch (e) {
+      console.log(e)
+      return []
+    }
+  }
+  const imageUrls = await getImageUrls()
 
-  const itemDesc = await page.$(".item_desc")
-  const itemDsecText: string | undefined = await (
-    await itemDesc?.getProperty("innerText")
-  )?.jsonValue()
+  const getItemDesc = async (): Promise<{
+    itemDescText: string | null
+    imageUrls: string[]
+  }> => {
+    try {
+      await page.waitForSelector(".item_desc", { timeout: 10000 })
+      const itemDescText: string | null = await page.$eval(
+        ".item_desc",
+        (el) => el.textContent
+      )
+
+      const imageUrls = await page.$$eval("span.item_desc img", (list) =>
+        list.map((el) => (el as HTMLImageElement).src)
+      )
+
+      return { itemDescText, imageUrls }
+    } catch (e) {
+      console.log(e)
+      return { itemDescText: "", imageUrls: [] }
+    }
+  }
+
+  const { itemDescText, imageUrls: itemDescImageUrls } = await getItemDesc()
 
   const itemName = await page.$(".normal_reserve_item_name")
   const itemNameText: string | undefined = await (
@@ -45,9 +72,9 @@ http("scraping-rakuten-product-detail", async (req, res) => {
 
   res.status(200).json({
     item: {
-      imageUrls,
+      imageUrls: [...imageUrls, ...itemDescImageUrls],
       name: itemNameText?.trim(),
-      description: itemDsecText?.trim(),
+      description: itemDescText?.trim(),
       price: `${price}円`,
     },
   })
