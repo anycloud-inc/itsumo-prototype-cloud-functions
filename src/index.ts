@@ -36,16 +36,16 @@ http("scraping-rakuten-product-detail", async (req, res) => {
   const imageUrls = await getImageUrls()
 
   const getItemDesc = async (): Promise<{
-    itemDescText?: string
+    itemDescText: string | null
     imageUrls: string[]
   }> => {
     try {
       await page.waitForSelector(".item_desc")
 
-      const itemDesc = await page.$(".item_desc")
-      const itemDescText: string | undefined = await (
-        await itemDesc?.getProperty("innerText")
-      )?.jsonValue()
+      const itemDescText: string | null = await page.$eval(
+        ".item_desc",
+        (el) => el.textContent
+      )
 
       const imageUrls = await page.$$eval("span.item_desc img", (list) =>
         list.map((el) => (el as HTMLImageElement).src)
