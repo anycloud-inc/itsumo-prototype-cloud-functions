@@ -24,7 +24,7 @@ http("scraping-rakuten-product-detail", async (req, res) => {
 
   const getImageUrls = async () => {
     try {
-      await page.waitForSelector(".sale_desc")
+      await page.waitForSelector(".sale_desc", { timeout: 10000 })
       return await page.$$eval("span.sale_desc img", (list) =>
         list.map((el) => (el as HTMLImageElement).src)
       )
@@ -40,8 +40,7 @@ http("scraping-rakuten-product-detail", async (req, res) => {
     imageUrls: string[]
   }> => {
     try {
-      await page.waitForSelector(".item_desc")
-
+      await page.waitForSelector(".item_desc", { timeout: 10000 })
       const itemDescText: string | null = await page.$eval(
         ".item_desc",
         (el) => el.textContent
