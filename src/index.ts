@@ -174,3 +174,112 @@ http("scraping-rakuten-product-reviews", async (req, res) => {
     reviews,
   })
 })
+
+http("scraping-amazon-product-reviews", async (req, res) => {
+  try {
+    const body = JSON.parse(req.body)
+    const options =
+      process.env.NODE_ENV === "production"
+        ? {
+            args: chromium.args,
+            executablePath: await chromium.executablePath,
+            headless: chromium.headless,
+          }
+        : {
+            args: [],
+            executablePath:
+              "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            headless: false,
+          }
+
+    const browser = await puppeteer.launch(options)
+    const page = await browser.newPage()
+
+    // cookieが存在しないと、ロボット判定されて商品ｎページにアクセスできないため、
+    // スクレイピング対策されていない、プライバシー規約のページにアクセスしてcookieを取得する
+    await page.goto(
+      "https://www.amazon.co.jp/gp/help/customer/display.html/ref=hp_gt_sp_prnt?nodeId=GX7NJQ4ZB8MHFRNJ"
+    )
+    await page.goto(body.siteUrl)
+
+    const isExistReviewLink = async () => {
+      try {
+        await page.waitForSelector("a[data-hook='see-all-reviews-link-foot']", {
+          timeout: 10000,
+        })
+        return true
+      } catch (e) {
+        console.log(e)
+        return false
+      }
+    }
+
+    // レビューページのリンクを持つ要素が表示されるまで待つ
+    const isExistReviewLinkResult = await isExistReviewLink()
+    if (!isExistReviewLinkResult) {
+      await browser.close()
+      res.status(200).json({
+        comprehensiveEval: "",
+        totalEvalCount: "",
+        reviews: [],
+      })
+    }
+
+    await page.click("a[data-hook='see-all-reviews-link-foot']")
+    await page.reload()
+
+    const isExistReviewText = async () => {
+      try {
+        await page.waitForSelector("span[data-hook='rating-out-of-text']", {
+          timeout: 10000,
+        })
+        return true
+      } catch (e) {
+        console.log(e)
+        return false
+      }
+    }
+
+    // レビューが表示されるまで待つ
+    const isExistReviewTextResult = await isExistReviewText()
+    if (!isExistReviewTextResult) {
+      await browser.close()
+      res.status(200).json({
+        comprehensiveEval: "",
+        totalEvalCount: "",
+        reviews: [],
+      })
+    }
+
+    // 総合評価の取得
+    const comprehensiveEvalElement = await page.$(
+      "span[data-hook='rating-out-of-text']"
+    )
+    const comprehensiveEval = await (
+      await comprehensiveEvalElement?.getProperty("innerText")
+    )?.jsonValue()
+
+    // 評価件数の取得
+    const totalEvalCountElement = await page.$(
+      "div[data-hook='total-review-count']"
+    )
+    const totalEvalCountText: string | undefined = await (
+      await totalEvalCountElement?.getProperty("innerText")
+    )?.jsonValue()
+    const totalEvalCount = totalEvalCountText?.replace(/[^0-9]/g, "")
+
+    // 1ページ目のレビューの取得（最大10件）
+    const reviews = await page.$$eval(
+      "span[data-hook='review-body']",
+      (list) => {
+        return list.map((data) => data.textContent?.trim())
+      }
+    )
+    await browser.close()
+
+    res.status(200).json({ comprehensiveEval, totalEvalCount, reviews })
+  } catch (e) {
+    console.log(e)
+    res.status(500).json({ success: false })
+  }
+})
