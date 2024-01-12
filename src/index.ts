@@ -131,12 +131,28 @@ http("scraping-rakuten-product-reviews", async (req, res) => {
     })
   }
 
-  // hrefに「https://review.rakuten.co.jp/item」を含む要素をクリックして、レビューページに遷移する
-  await page.click('a[href^="https://review.rakuten.co.jp/item"]')
+  // hrefに「https://review.rakuten.co.jp/item」を含むaタグのhref属性を取得する
+  // NOTE: aタグをクリックして遷移すると、ページ遷移処理が上手く動作しないときがあるため、hrefを取得して直接遷移する
+  const href = await page.$eval(
+    'a[href^="https://review.rakuten.co.jp/item"]',
+    (el) => el.getAttribute("href")
+  )
 
+  if (href == null) {
+    await browser.close()
+    res.status(200).json({
+      comprehensiveEval: "",
+      totalEvalCount: "",
+      reviews: [],
+    })
+  }
+
+  // レビューページに遷移する
+  await page.goto(href!)
   const reviewSortBtnClassName = ".revRvwSortTurn"
+
   // 参考になるレビュー順で表示するため、ソートボタンが表示されるまで待つ
-  await page.waitForSelector(reviewSortBtnClassName)
+  await page.waitForSelector(reviewSortBtnClassName, { timeout: 10000 })
   await page.click('a[l2id_linkname="search_03"]')
 
   // 同じページの遷移のため、documentをリセットするためにページをリロードする
