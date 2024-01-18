@@ -299,3 +299,12 @@ http("scraping-amazon-product-reviews", async (req, res) => {
     res.status(500).json({ success: false })
   }
 })
+
+http("scraping-amazon-product-detail", async (req, res) => {
+  try {
+    console.log(req.body)
+  } catch (e) {
+    console.log(e)
+    res.status(500).json({ success: false })
+  }
+})
