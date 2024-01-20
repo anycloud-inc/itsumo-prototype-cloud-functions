@@ -302,8 +302,7 @@ http("scraping-amazon-product-reviews", async (req, res) => {
 
 http("scraping-amazon-product-detail", async (req, res) => {
   try {
-    const jsonString = JSON.stringify(req.body)
-    const body = JSON.parse(jsonString)
+    const body = JSON.parse(req.body)
     const options =
       process.env.NODE_ENV === "production"
         ? {
@@ -391,13 +390,9 @@ http("scraping-amazon-product-detail", async (req, res) => {
     // 「商品の説明」(aplus)
     const aplusSelector = "div#aplus img"
     const getAplusImageUrls = async () => {
-      console.log('getAplusImageUrls called')
       try {
         await page.waitForSelector(".aplus-module", { timeout: 10000 })
-        return await page.$$eval(aplusSelector, (list) => {
-          console.log(list)
-          return list.map((el) => (el as HTMLImageElement).src)
-        })
+        return await page.$$eval(aplusSelector, (list) => list.map((el) => (el as HTMLImageElement).src))
       } catch (e) {
         console.log(e)
         return []
