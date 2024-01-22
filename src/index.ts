@@ -365,6 +365,10 @@ http("scraping-amazon-product-detail", async (req, res) => {
       await price?.getProperty("innerText")
     )?.jsonValue()
 
+    // サムネイル画像
+    const thumbnailImageSelector = "img#landingImage"
+    const thumbnailImageUrl = await page.$eval(thumbnailImageSelector, el => (el as HTMLImageElement).src)
+
     // テーブル情報
     const productOverviewSelector = "[id^='productOverview']"
     const productOverview = await page.$(productOverviewSelector)
@@ -386,19 +390,19 @@ http("scraping-amazon-product-detail", async (req, res) => {
       await productDetails?.getProperty("innerText")
     )?.jsonValue()
 
-    // まだ画像URLをちゃんと取得できてない
     // 「商品の説明」(aplus)
     const aplusSelector = "div#aplus img"
     const getAplusImageUrls = async () => {
       try {
         await page.waitForSelector(".aplus-module", { timeout: 10000 })
-        return await page.$$eval(aplusSelector, (list) => list.map((el) => (el as HTMLImageElement).src))
+        return await page.$$eval(aplusSelector, (list) => list.map((el) => (el as HTMLImageElement).getAttribute('data-src')))
       } catch (e) {
         console.log(e)
         return []
       }
     }
     const aplusImageUrls = await getAplusImageUrls()
+    const filteredAplusImageUrls = aplusImageUrls.filter((url) => url !== null) // aplus内の比較グラフの画像の場合, data-srcはないのでnullとなる
 
 
     // 「商品の説明」（productDescription）
@@ -420,10 +424,11 @@ http("scraping-amazon-product-detail", async (req, res) => {
     res.status(200).json({
       productNameText,
       priceText,
+      thumbnailImageUrl,
       productOverviewText,
       featureBulletsText,
       productDetailsText,
-      aplusImageUrls,
+      filteredAplusImageUrls,
       productDescriptionText,
       importantInformationText,
     })
