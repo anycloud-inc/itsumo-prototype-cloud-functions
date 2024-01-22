@@ -345,9 +345,15 @@ http("scraping-amazon-product-detail", async (req, res) => {
     if (!isExistTitle) {
       await browser.close()
       res.status(200).json({
-        comprehensiveEval: "",
-        totalEvalCount: "",
-        reviews: [],
+        productNameText: '',
+        priceText: '',
+        thumbnailImageUrl: '',
+        productOverviewText: '',
+        featureBulletsText: '',
+        productDetailsText: '',
+        filteredAplusImageUrls: [],
+        productDescriptionText: '',
+        importantInformationText: '',
       })
     }
 
