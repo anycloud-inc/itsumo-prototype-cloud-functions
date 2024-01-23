@@ -306,7 +306,7 @@ http("scraping-amazon-product-detail", async (req, res) => {
     const options =
       process.env.NODE_ENV === "production"
         ? {
-            args: chromium.args,
+            args: [...chromium.args , '--lang=ja'],
             executablePath: await chromium.executablePath,
             headless: chromium.headless,
           }
@@ -319,6 +319,7 @@ http("scraping-amazon-product-detail", async (req, res) => {
 
     const browser = await puppeteer.launch(options)
     const page = await browser.newPage()
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'ja-JP' }) // 本番環境で英語となったのでpuppeteerの言語を日本語に変える
 
     // cookieが存在しないと、ロボット判定されて商品ｎページにアクセスできないため、
     // スクレイピング対策されていない、プライバシー規約のページにアクセスしてcookieを取得する
