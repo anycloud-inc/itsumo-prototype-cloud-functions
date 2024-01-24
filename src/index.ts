@@ -299,3 +299,148 @@ http("scraping-amazon-product-reviews", async (req, res) => {
     res.status(500).json({ success: false })
   }
 })
+
+http("scraping-amazon-product-detail", async (req, res) => {
+  try {
+    const body = JSON.parse(req.body)
+    const options =
+      process.env.NODE_ENV === "production"
+        ? {
+            args: [...chromium.args , '--lang=ja'],
+            executablePath: await chromium.executablePath,
+            headless: chromium.headless,
+          }
+        : {
+            args: [],
+            executablePath:
+              "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            headless: false,
+          }
+
+    const browser = await puppeteer.launch(options)
+    const page = await browser.newPage()
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'ja-JP' }) // 本番環境で英語となったのでpuppeteerの言語を日本語に変える
+
+    // cookieが存在しないと、ロボット判定されて商品ｎページにアクセスできないため、
+    // スクレイピング対策されていない、プライバシー規約のページにアクセスしてcookieを取得する
+    await page.goto(
+      "https://www.amazon.co.jp/gp/help/customer/display.html/ref=hp_gt_sp_prnt?nodeId=GX7NJQ4ZB8MHFRNJ"
+    )
+    await page.goto(body.siteUrl)
+
+    await page.reload()
+
+    const isExistSelector = async (selector: string) => {
+      try {
+        await page.waitForSelector(selector, { timeout: 10000 })
+        return true
+      } catch (e) {
+        console.log(e)
+        return false
+      }
+    }
+
+    // 必要な情報が揃うカスタマーレビューが表示されるまで待つ
+    const costomerReviewsSelector = "div#customerReviews"
+    const isExistTitle = await isExistSelector(costomerReviewsSelector)
+    if (!isExistTitle) {
+      await browser.close()
+      res.status(200).json({
+        productNameText: '',
+        priceText: '',
+        thumbnailImageUrl: '',
+        productOverviewText: '',
+        featureBulletsText: '',
+        productDetailsText: '',
+        filteredAplusImageUrls: [],
+        productDescriptionText: '',
+        importantInformationText: '',
+      })
+    }
+
+    // タイトル
+    const titleSelector = "span#productTitle"
+    const productName = await page.$(titleSelector)
+    const productNameText: string | undefined = await (
+      await productName?.getProperty("innerText")
+    )?.jsonValue()
+
+    // 価格
+    const priceSelector = "[id^='corePrice']"
+    const price = await page.$(priceSelector)
+    const priceText: string | undefined = await (
+      await price?.getProperty("innerText")
+    )?.jsonValue()
+
+    // サムネイル画像
+    const thumbnailImageSelector = "img#landingImage"
+    const thumbnailImageUrl = await page.$eval(thumbnailImageSelector, el => (el as HTMLImageElement).src)
+
+    // テーブル情報
+    const productOverviewSelector = "[id^='productOverview']"
+    const productOverview = await page.$(productOverviewSelector)
+    const productOverviewText: string | undefined = await (
+      await productOverview?.getProperty("innerText")
+    )?.jsonValue()
+
+    // 「この商品について」
+    const featureBulletsSelector = "[id^='feature-bullets']"
+    const featureBullets = await page.$(featureBulletsSelector)
+    const featureBulletsText: string | undefined = await (
+      await featureBullets?.getProperty("innerText")
+    )?.jsonValue()
+
+    // 「商品の情報」
+    const productDetailsSelector = "[id^='productDetails']"
+    const productDetails = await page.$(productDetailsSelector)
+    const productDetailsText: string | undefined = await (
+      await productDetails?.getProperty("innerText")
+    )?.jsonValue()
+
+    // 「商品の説明」(aplus)
+    const aplusSelector = "div#aplus img"
+    const getAplusImageUrls = async () => {
+      try {
+        await page.waitForSelector(".aplus-module", { timeout: 10000 })
+        return await page.$$eval(aplusSelector, (list) => list.map((el) => (el as HTMLImageElement).getAttribute('data-src')))
+      } catch (e) {
+        console.log(e)
+        return []
+      }
+    }
+    const aplusImageUrls = await getAplusImageUrls()
+    const filteredAplusImageUrls = aplusImageUrls.filter((url) => url !== null) // aplus内の比較グラフの画像の場合, data-srcはないのでnullとなる
+
+
+    // 「商品の説明」（productDescription）
+    const productDescriptionSelector = "[id^='productDescription']"
+    const productDescription = await page.$(productDescriptionSelector)
+    const productDescriptionText: string | undefined = await (
+      await productDescription?.getProperty("innerText")
+    )?.jsonValue()
+
+    // 「重要なお知らせ」
+    const importantInformationSelector = "[id^='importantInformation']"
+    const importantInformation = await page.$(importantInformationSelector)
+    const importantInformationText: string | undefined = await (
+      await importantInformation?.getProperty("innerText")
+    )?.jsonValue()
+
+    await browser.close()
+
+    res.status(200).json({
+      productNameText,
+      priceText,
+      thumbnailImageUrl,
+      productOverviewText,
+      featureBulletsText,
+      productDetailsText,
+      filteredAplusImageUrls,
+      productDescriptionText,
+      importantInformationText,
+    })
+  } catch (e) {
+    console.log(e)
+    res.status(500).json({ success: false })
+  }
+})
