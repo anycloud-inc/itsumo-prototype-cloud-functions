@@ -29,7 +29,7 @@ http("scraping-rakuten-product-detail", async (req, res) => {
     saleDescImageUrls: string[]
   }> => {
     try {
-      await page.waitForSelector(".sale_desc", { timeout: 10000 })
+      await page.waitForSelector(".sale_desc", { timeout: 120000 })
       const saleDescText: string = await page.$eval(
         ".sale_desc div",
         (el) => el.textContent
@@ -87,6 +87,56 @@ http("scraping-rakuten-product-detail", async (req, res) => {
   //   return (el as HTMLImageElement).getAttribute('src')
   // }))
 
+  // 限定画像
+  const getLimitedImages = async (): Promise<{limitedImageUrls: string[]}> => {
+    try {
+      await page.waitForSelector("td.rakutenLimitedId_GPImage img", { timeout: 120000 })
+      const limitedImageUrls = await page.$$eval("td.rakutenLimitedId_GPImage img", (list) =>
+        list.map((el) => (el as HTMLImageElement).src)
+      )
+      return { limitedImageUrls }
+    } catch (e) {
+      console.log(e)
+      return { limitedImageUrls: [] }
+    }
+  }
+  const { limitedImageUrls } = await getLimitedImages()
+
+  // 商品使用
+  const getSpec = async(): Promise<{specText: string}> => {
+    try {
+      await page.waitForSelector(".normal-reserve-specTableArea", { timeout: 10000 })
+      const specText = await page.$eval(".normal-reserve-specTableArea", (el) => el.textContent) as string
+      return { specText }
+    } catch (e) {
+      console.log(e)
+      return { specText: "" }
+    }
+  }
+  const { specText } = await getSpec()
+
+  // レビュー前の商品情報
+  const getExt = async (): Promise<{
+    extText: string
+    extImageUrls: string[]
+  }> => {
+    try {
+      await page.waitForSelector("td.exT_sdtext", { timeout: 10000 })
+      const extText = await page
+        .$eval(".td.exT_sdtext", (el) => el.textContent) as string
+
+      const extImageUrls = await page.$$eval("td.exT_sdtext img", (list) =>
+        list.map((el) => (el as HTMLImageElement).src)
+      )
+      return { extText, extImageUrls }
+    } catch (e) {
+      console.log(e)
+      return { extText: "", extImageUrls: [] }
+    }
+  }
+  const { extText, extImageUrls } = await getExt()
+
+
   // レビュー
   const reviewsSelector = "[data-ratid='ratReviewParts']"
   const reviews = await page.$(reviewsSelector)
@@ -98,9 +148,9 @@ http("scraping-rakuten-product-detail", async (req, res) => {
 
   res.status(200).json({
     item: {
-      imageUrls: [...saleDescImageUrls, ...itemDescImageUrls],
+      imageUrls: [...saleDescImageUrls, ...itemDescImageUrls, ...extImageUrls, ...limitedImageUrls],
       name: itemNameText?.trim(),
-      description: saleDescText.trim() + itemDescText.trim() + reviewsText.trim(),
+      description: saleDescText.trim() + itemDescText.trim() + specText.trim() + extText.trim() + reviewsText.trim(),
       price: `${price}円`,
     },
   })
