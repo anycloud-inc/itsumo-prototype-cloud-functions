@@ -3,7 +3,9 @@ import puppeteer from "puppeteer-core"
 import chromium from "chrome-aws-lambda"
 
 http("scraping-rakuten-product-detail", async (req, res) => {
-  const body = JSON.parse(req.body)
+  const jsonString = JSON.stringify(req.body)
+  const body = JSON.parse(jsonString)
+  // const body = JSON.parse(req.body)
   const options =
     process.env.NODE_ENV === "production"
       ? {
@@ -22,42 +24,51 @@ http("scraping-rakuten-product-detail", async (req, res) => {
   const page = await browser.newPage()
   await page.goto(body.siteUrl)
 
-  const getImageUrls = async () => {
+  const getSaleDesc = async (): Promise<{
+    saleDescText: string
+    saleDescImageUrls: string[]
+  }> => {
     try {
       await page.waitForSelector(".sale_desc", { timeout: 10000 })
-      return await page.$$eval("span.sale_desc img", (list) =>
+      const saleDescText: string = await page.$eval(
+        ".sale_desc div",
+        (el) => el.textContent
+      ) as string
+
+      const saleDescImageUrls = await page.$$eval("span.sale_desc img", (list) =>
         list.map((el) => (el as HTMLImageElement).src)
       )
+      return { saleDescText, saleDescImageUrls }
     } catch (e) {
       console.log(e)
-      return []
+      return { saleDescText: "", saleDescImageUrls: [] }
     }
   }
-  const imageUrls = await getImageUrls()
+  const { saleDescText, saleDescImageUrls, } = await getSaleDesc()
 
   const getItemDesc = async (): Promise<{
-    itemDescText: string | null
-    imageUrls: string[]
+    itemDescText: string
+    itemDescImageUrls: string[]
   }> => {
     try {
       await page.waitForSelector(".item_desc", { timeout: 10000 })
-      const itemDescText: string | null = await page.$eval(
+      const itemDescText = await page.$eval(
         ".item_desc",
         (el) => el.textContent
-      )
+      ) as string
 
-      const imageUrls = await page.$$eval("span.item_desc img", (list) =>
+      const itemDescImageUrls = await page.$$eval("span.item_desc img", (list) =>
         list.map((el) => (el as HTMLImageElement).src)
       )
 
-      return { itemDescText, imageUrls }
+      return { itemDescText, itemDescImageUrls }
     } catch (e) {
       console.log(e)
-      return { itemDescText: "", imageUrls: [] }
+      return { itemDescText: "", itemDescImageUrls: [] }
     }
   }
 
-  const { itemDescText, imageUrls: itemDescImageUrls } = await getItemDesc()
+  const { itemDescText, itemDescImageUrls } = await getItemDesc()
 
   const itemName = await page.$(".normal_reserve_item_name")
   const itemNameText: string | undefined = await (
@@ -68,13 +79,28 @@ http("scraping-rakuten-product-detail", async (req, res) => {
     el.getAttribute("data-price")
   )
 
+  // 価格横の画像
+  // const tmp = "[irc^='Image']"
+  // const hoge = await page.$(tmp)
+  // await hoge?.$$eval('div', (list) => list.map((el) => {
+  //   console.log((el as HTMLImageElement))
+  //   return (el as HTMLImageElement).getAttribute('src')
+  // }))
+
+  // レビュー
+  const reviewsSelector = "[data-ratid='ratReviewParts']"
+  const reviews = await page.$(reviewsSelector)
+  const reviewsText = await (
+    await reviews?.getProperty("innerText")
+  )?.jsonValue() as string
+
   await browser.close()
 
   res.status(200).json({
     item: {
-      imageUrls: [...imageUrls, ...itemDescImageUrls],
+      imageUrls: [...saleDescImageUrls, ...itemDescImageUrls],
       name: itemNameText?.trim(),
-      description: itemDescText?.trim(),
+      description: saleDescText.trim() + itemDescText.trim() + reviewsText.trim(),
       price: `${price}円`,
     },
   })
