@@ -1,13 +1,13 @@
-import { http } from "@google-cloud/functions-framework"
-import puppeteer from "puppeteer-core"
-import chromium from "chrome-aws-lambda"
+import { http } from '@google-cloud/functions-framework'
+import puppeteer from 'puppeteer-core'
+import chromium from 'chrome-aws-lambda'
 
-http("scraping-rakuten-product-detail", async (req, res) => {
+http('scraping-rakuten-product-detail', async (req, res) => {
   const jsonString = JSON.stringify(req.body)
   const body = JSON.parse(jsonString)
   // const body = JSON.parse(req.body)
   const options =
-    process.env.NODE_ENV === "production"
+    process.env.NODE_ENV === 'production'
       ? {
           args: chromium.args,
           executablePath: await chromium.executablePath,
@@ -15,8 +15,7 @@ http("scraping-rakuten-product-detail", async (req, res) => {
         }
       : {
           args: [],
-          executablePath:
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+          executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
           headless: false,
         }
 
@@ -29,62 +28,57 @@ http("scraping-rakuten-product-detail", async (req, res) => {
     saleDescImageUrls: string[]
   }> => {
     try {
-      await page.waitForSelector(".sale_desc", { timeout: 10000 })
-      const saleDescText: string = await page.$eval(
-        ".sale_desc div",
-        (el) => el.textContent
-      ) as string
+      await page.waitForSelector('.sale_desc', { timeout: 10000 })
+      const saleDescText: string = (await page.$eval(
+        '.sale_desc div',
+        (el) => el.textContent,
+      )) as string
 
-      const saleDescImageUrls = await page.$$eval("span.sale_desc img", (list) =>
-        list.map((el) => (el as HTMLImageElement).src)
+      const saleDescImageUrls = await page.$$eval('span.sale_desc img', (list) =>
+        list.map((el) => (el as HTMLImageElement).src),
       )
       return { saleDescText, saleDescImageUrls }
     } catch (e) {
       console.log(e)
-      return { saleDescText: "", saleDescImageUrls: [] }
+      return { saleDescText: '', saleDescImageUrls: [] }
     }
   }
-  const { saleDescText, saleDescImageUrls, } = await getSaleDesc()
+  const { saleDescText, saleDescImageUrls } = await getSaleDesc()
 
   const getItemDesc = async (): Promise<{
     itemDescText: string
     itemDescImageUrls: string[]
   }> => {
     try {
-      await page.waitForSelector(".item_desc", { timeout: 10000 })
-      const itemDescText = await page.$eval(
-        ".item_desc",
-        (el) => el.textContent
-      ) as string
+      await page.waitForSelector('.item_desc', { timeout: 10000 })
+      const itemDescText = (await page.$eval('.item_desc', (el) => el.textContent)) as string
 
-      const itemDescImageUrls = await page.$$eval("span.item_desc img", (list) =>
-        list.map((el) => (el as HTMLImageElement).src)
+      const itemDescImageUrls = await page.$$eval('span.item_desc img', (list) =>
+        list.map((el) => (el as HTMLImageElement).src),
       )
 
       return { itemDescText, itemDescImageUrls }
     } catch (e) {
       console.log(e)
-      return { itemDescText: "", itemDescImageUrls: [] }
+      return { itemDescText: '', itemDescImageUrls: [] }
     }
   }
 
   const { itemDescText, itemDescImageUrls } = await getItemDesc()
 
-  const itemName = await page.$(".normal_reserve_item_name")
+  const itemName = await page.$('.normal_reserve_item_name')
   const itemNameText: string | undefined = await (
-    await itemName?.getProperty("innerText")
+    await itemName?.getProperty('innerText')
   )?.jsonValue()
 
-  const price = await page.$eval("#priceCalculationConfig", (el) =>
-    el.getAttribute("data-price")
-  )
+  const price = await page.$eval('#priceCalculationConfig', (el) => el.getAttribute('data-price'))
 
   // 価格横の画像
   const getNextToPriceImageUrls = async (): Promise<{ nextToPriceImageUrls: string[] }> => {
     try {
-      await page.waitForSelector(".image--3z5RH", { timeout: 10000 })
-      const nextToPriceImageUrls = await page.$$eval(".image--3z5RH", (list) =>
-        list.map((el) => (el as HTMLImageElement).src)
+      await page.waitForSelector('.image--3z5RH', { timeout: 10000 })
+      const nextToPriceImageUrls = await page.$$eval('.image--3z5RH', (list) =>
+        list.map((el) => (el as HTMLImageElement).src),
       )
       return { nextToPriceImageUrls }
     } catch (e) {
@@ -95,11 +89,11 @@ http("scraping-rakuten-product-detail", async (req, res) => {
   const { nextToPriceImageUrls } = await getNextToPriceImageUrls()
 
   // 限定画像
-  const getLimitedImages = async (): Promise<{ limitedImageUrls: string[]} > => {
+  const getLimitedImages = async (): Promise<{ limitedImageUrls: string[] }> => {
     try {
-      await page.waitForSelector("td.rakutenLimitedId_GPImage img", { timeout: 10000 })
-      const limitedImageUrls = await page.$$eval("td.rakutenLimitedId_GPImage img", (list) =>
-        list.map((el) => (el as HTMLImageElement).src)
+      await page.waitForSelector('td.rakutenLimitedId_GPImage img', { timeout: 10000 })
+      const limitedImageUrls = await page.$$eval('td.rakutenLimitedId_GPImage img', (list) =>
+        list.map((el) => (el as HTMLImageElement).src),
       )
       return { limitedImageUrls }
     } catch (e) {
@@ -110,14 +104,17 @@ http("scraping-rakuten-product-detail", async (req, res) => {
   const { limitedImageUrls } = await getLimitedImages()
 
   // 商品使用
-  const getSpec = async(): Promise<{specText: string}> => {
+  const getSpec = async (): Promise<{ specText: string }> => {
     try {
-      await page.waitForSelector(".normal-reserve-specTableArea", { timeout: 10000 })
-      const specText = await page.$eval(".normal-reserve-specTableArea", (el) => el.textContent) as string
+      await page.waitForSelector('.normal-reserve-specTableArea', { timeout: 10000 })
+      const specText = (await page.$eval(
+        '.normal-reserve-specTableArea',
+        (el) => el.textContent,
+      )) as string
       return { specText }
     } catch (e) {
       console.log(e)
-      return { specText: "" }
+      return { specText: '' }
     }
   }
   const { specText } = await getSpec()
@@ -128,45 +125,52 @@ http("scraping-rakuten-product-detail", async (req, res) => {
     extImageUrls: string[]
   }> => {
     try {
-      await page.waitForSelector("td.exT_sdtext", { timeout: 10000 })
-      const extText = await page
-        .$eval(".td.exT_sdtext", (el) => el.textContent) as string
+      await page.waitForSelector('td.exT_sdtext', { timeout: 10000 })
+      const extText = (await page.$eval('.td.exT_sdtext', (el) => el.textContent)) as string
 
-      const extImageUrls = await page.$$eval("td.exT_sdtext img", (list) =>
-        list.map((el) => (el as HTMLImageElement).src)
+      const extImageUrls = await page.$$eval('td.exT_sdtext img', (list) =>
+        list.map((el) => (el as HTMLImageElement).src),
       )
       return { extText, extImageUrls }
     } catch (e) {
       console.log(e)
-      return { extText: "", extImageUrls: [] }
+      return { extText: '', extImageUrls: [] }
     }
   }
   const { extText, extImageUrls } = await getExt()
 
-
   // レビュー
   const reviewsSelector = "[data-ratid='ratReviewParts']"
   const reviews = await page.$(reviewsSelector)
-  const reviewsText = await (
-    await reviews?.getProperty("innerText")
-  )?.jsonValue() as string
+  const reviewsText = (await (await reviews?.getProperty('innerText'))?.jsonValue()) as string
 
   await browser.close()
 
   res.status(200).json({
     item: {
-      imageUrls: [...saleDescImageUrls, ...itemDescImageUrls, ...nextToPriceImageUrls, ...extImageUrls, ...limitedImageUrls],
+      imageUrls: [
+        ...saleDescImageUrls,
+        ...itemDescImageUrls,
+        ...nextToPriceImageUrls,
+        ...extImageUrls,
+        ...limitedImageUrls,
+      ],
       name: itemNameText?.trim(),
-      description: saleDescText.trim() + itemDescText.trim() + specText.trim() + extText.trim() + reviewsText.trim(),
+      description:
+        saleDescText.trim() +
+        itemDescText.trim() +
+        specText.trim() +
+        extText.trim() +
+        reviewsText.trim(),
       price: `${price}円`,
     },
   })
 })
 
-http("scraping-rakuten-product-reviews", async (req, res) => {
+http('scraping-rakuten-product-reviews', async (req, res) => {
   const body = JSON.parse(req.body)
   const options =
-    process.env.NODE_ENV === "production"
+    process.env.NODE_ENV === 'production'
       ? {
           args: chromium.args,
           executablePath: await chromium.executablePath,
@@ -174,8 +178,7 @@ http("scraping-rakuten-product-reviews", async (req, res) => {
         }
       : {
           args: [],
-          executablePath:
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+          executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
           headless: false,
         }
 
@@ -196,9 +199,9 @@ http("scraping-rakuten-product-reviews", async (req, res) => {
 
   const isExistReviewLink = async () => {
     const [pageItemReviews, reviewButton, reviewLink] = await Promise.all([
-      isExistSelector(".page_item_reviews"),
-      isExistSelector(".button--3SNaj"),
-      isExistSelector(".link--_SR9y"),
+      isExistSelector('.page_item_reviews'),
+      isExistSelector('.button--3SNaj'),
+      isExistSelector('.link--_SR9y'),
     ])
     return pageItemReviews || reviewButton || reviewLink
   }
@@ -208,31 +211,30 @@ http("scraping-rakuten-product-reviews", async (req, res) => {
   if (!isExistReviewLinkResult) {
     await browser.close()
     res.status(200).json({
-      comprehensiveEval: "",
-      totalEvalCount: "",
+      comprehensiveEval: '',
+      totalEvalCount: '',
       reviews: [],
     })
   }
 
   // hrefに「https://review.rakuten.co.jp/item」を含むaタグのhref属性を取得する
   // NOTE: aタグをクリックして遷移すると、ページ遷移処理が上手く動作しないときがあるため、hrefを取得して直接遷移する
-  const href = await page.$eval(
-    'a[href^="https://review.rakuten.co.jp/item"]',
-    (el) => el.getAttribute("href")
+  const href = await page.$eval('a[href^="https://review.rakuten.co.jp/item"]', (el) =>
+    el.getAttribute('href'),
   )
 
   if (href == null) {
     await browser.close()
     res.status(200).json({
-      comprehensiveEval: "",
-      totalEvalCount: "",
+      comprehensiveEval: '',
+      totalEvalCount: '',
       reviews: [],
     })
   }
 
   // レビューページに遷移する
   await page.goto(href!)
-  const reviewSortBtnClassName = ".revRvwSortTurn"
+  const reviewSortBtnClassName = '.revRvwSortTurn'
 
   // 参考になるレビュー順で表示するため、ソートボタンが表示されるまで待つ
   await page.waitForSelector(reviewSortBtnClassName, { timeout: 10000 })
@@ -241,28 +243,26 @@ http("scraping-rakuten-product-reviews", async (req, res) => {
   // 同じページの遷移のため、documentをリセットするためにページをリロードする
   // リロードしないと、遷移前のレビューを取得してしまう
   await page.reload()
-  const reviewItemClassName = ".revRvwUserEntryCmt"
+  const reviewItemClassName = '.revRvwUserEntryCmt'
 
   // レビューが表示されるまで待つ
   await page.waitForSelector(reviewSortBtnClassName)
 
   // 総合評価の取得
-  const comprehensiveEvalElement = await page.$(".revEvaNumber")
+  const comprehensiveEvalElement = await page.$('.revEvaNumber')
   const comprehensiveEval = await (
-    await comprehensiveEvalElement?.getProperty("innerText")
+    await comprehensiveEvalElement?.getProperty('innerText')
   )?.jsonValue()
 
   // 評価件数の取得
-  const totalEvalCountElement = await page.$(".revEvaCount > .Count")
-  const totalEvalCount = await (
-    await totalEvalCountElement?.getProperty("innerText")
-  )?.jsonValue()
+  const totalEvalCountElement = await page.$('.revEvaCount > .Count')
+  const totalEvalCount = await (await totalEvalCountElement?.getProperty('innerText'))?.jsonValue()
 
   // 1ページ目のレビューの取得（最大15件）
   const list = await page.$$(reviewItemClassName)
   let reviews = []
   for (let i = 0; i < list.length; i++) {
-    reviews.push(await (await list[i].getProperty("textContent"))?.jsonValue())
+    reviews.push(await (await list[i].getProperty('textContent'))?.jsonValue())
   }
 
   await browser.close()
@@ -274,11 +274,11 @@ http("scraping-rakuten-product-reviews", async (req, res) => {
   })
 })
 
-http("scraping-amazon-product-reviews", async (req, res) => {
+http('scraping-amazon-product-reviews', async (req, res) => {
   try {
     const body = JSON.parse(req.body)
     const options =
-      process.env.NODE_ENV === "production"
+      process.env.NODE_ENV === 'production'
         ? {
             args: chromium.args,
             executablePath: await chromium.executablePath,
@@ -286,8 +286,7 @@ http("scraping-amazon-product-reviews", async (req, res) => {
           }
         : {
             args: [],
-            executablePath:
-              "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
             headless: false,
           }
 
@@ -297,7 +296,7 @@ http("scraping-amazon-product-reviews", async (req, res) => {
     // cookieが存在しないと、ロボット判定されて商品ｎページにアクセスできないため、
     // スクレイピング対策されていない、プライバシー規約のページにアクセスしてcookieを取得する
     await page.goto(
-      "https://www.amazon.co.jp/gp/help/customer/display.html/ref=hp_gt_sp_prnt?nodeId=GX7NJQ4ZB8MHFRNJ"
+      'https://www.amazon.co.jp/gp/help/customer/display.html/ref=hp_gt_sp_prnt?nodeId=GX7NJQ4ZB8MHFRNJ',
     )
     await page.goto(body.siteUrl)
 
@@ -318,8 +317,8 @@ http("scraping-amazon-product-reviews", async (req, res) => {
     if (!isExistReviewLinkResult) {
       await browser.close()
       res.status(200).json({
-        comprehensiveEval: "",
-        totalEvalCount: "",
+        comprehensiveEval: '',
+        totalEvalCount: '',
         reviews: [],
       })
     }
@@ -344,36 +343,29 @@ http("scraping-amazon-product-reviews", async (req, res) => {
     if (!isExistReviewTextResult) {
       await browser.close()
       res.status(200).json({
-        comprehensiveEval: "",
-        totalEvalCount: "",
+        comprehensiveEval: '',
+        totalEvalCount: '',
         reviews: [],
       })
     }
 
     // 総合評価の取得
-    const comprehensiveEvalElement = await page.$(
-      "span[data-hook='rating-out-of-text']"
-    )
+    const comprehensiveEvalElement = await page.$("span[data-hook='rating-out-of-text']")
     const comprehensiveEval = await (
-      await comprehensiveEvalElement?.getProperty("innerText")
+      await comprehensiveEvalElement?.getProperty('innerText')
     )?.jsonValue()
 
     // 評価件数の取得
-    const totalEvalCountElement = await page.$(
-      "div[data-hook='total-review-count']"
-    )
+    const totalEvalCountElement = await page.$("div[data-hook='total-review-count']")
     const totalEvalCountText: string | undefined = await (
-      await totalEvalCountElement?.getProperty("innerText")
+      await totalEvalCountElement?.getProperty('innerText')
     )?.jsonValue()
-    const totalEvalCount = totalEvalCountText?.replace(/[^0-9]/g, "")
+    const totalEvalCount = totalEvalCountText?.replace(/[^0-9]/g, '')
 
     // 1ページ目のレビューの取得（最大10件）
-    const reviews = await page.$$eval(
-      "span[data-hook='review-body']",
-      (list) => {
-        return list.map((data) => data.textContent?.trim())
-      }
-    )
+    const reviews = await page.$$eval("span[data-hook='review-body']", (list) => {
+      return list.map((data) => data.textContent?.trim())
+    })
     await browser.close()
 
     res.status(200).json({ comprehensiveEval, totalEvalCount, reviews })
@@ -383,20 +375,19 @@ http("scraping-amazon-product-reviews", async (req, res) => {
   }
 })
 
-http("scraping-amazon-product-detail", async (req, res) => {
+http('scraping-amazon-product-detail', async (req, res) => {
   try {
     const body = JSON.parse(req.body)
     const options =
-      process.env.NODE_ENV === "production"
+      process.env.NODE_ENV === 'production'
         ? {
-            args: [...chromium.args , '--lang=ja'],
+            args: [...chromium.args, '--lang=ja'],
             executablePath: await chromium.executablePath,
             headless: chromium.headless,
           }
         : {
             args: [],
-            executablePath:
-              "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
             headless: false,
           }
 
@@ -407,7 +398,7 @@ http("scraping-amazon-product-detail", async (req, res) => {
     // cookieが存在しないと、ロボット判定されて商品ｎページにアクセスできないため、
     // スクレイピング対策されていない、プライバシー規約のページにアクセスしてcookieを取得する
     await page.goto(
-      "https://www.amazon.co.jp/gp/help/customer/display.html/ref=hp_gt_sp_prnt?nodeId=GX7NJQ4ZB8MHFRNJ"
+      'https://www.amazon.co.jp/gp/help/customer/display.html/ref=hp_gt_sp_prnt?nodeId=GX7NJQ4ZB8MHFRNJ',
     )
     await page.goto(body.siteUrl)
 
@@ -424,7 +415,7 @@ http("scraping-amazon-product-detail", async (req, res) => {
     }
 
     // 必要な情報が揃うカスタマーレビューが表示されるまで待つ
-    const costomerReviewsSelector = "div#customerReviews"
+    const costomerReviewsSelector = 'div#customerReviews'
     const isExistTitle = await isExistSelector(costomerReviewsSelector)
     if (!isExistTitle) {
       await browser.close()
@@ -442,50 +433,53 @@ http("scraping-amazon-product-detail", async (req, res) => {
     }
 
     // タイトル
-    const titleSelector = "span#productTitle"
+    const titleSelector = 'span#productTitle'
     const productName = await page.$(titleSelector)
     const productNameText: string | undefined = await (
-      await productName?.getProperty("innerText")
+      await productName?.getProperty('innerText')
     )?.jsonValue()
 
     // 価格
     const priceSelector = "[id^='corePrice']"
     const price = await page.$(priceSelector)
-    const priceText: string | undefined = await (
-      await price?.getProperty("innerText")
-    )?.jsonValue()
+    const priceText: string | undefined = await (await price?.getProperty('innerText'))?.jsonValue()
 
     // サムネイル画像
-    const thumbnailImageSelector = "img#landingImage"
-    const thumbnailImageUrl = await page.$eval(thumbnailImageSelector, el => (el as HTMLImageElement).src)
+    const thumbnailImageSelector = 'img#landingImage'
+    const thumbnailImageUrl = await page.$eval(
+      thumbnailImageSelector,
+      (el) => (el as HTMLImageElement).src,
+    )
 
     // テーブル情報
     const productOverviewSelector = "[id^='productOverview']"
     const productOverview = await page.$(productOverviewSelector)
     const productOverviewText: string | undefined = await (
-      await productOverview?.getProperty("innerText")
+      await productOverview?.getProperty('innerText')
     )?.jsonValue()
 
     // 「この商品について」
     const featureBulletsSelector = "[id^='feature-bullets']"
     const featureBullets = await page.$(featureBulletsSelector)
     const featureBulletsText: string | undefined = await (
-      await featureBullets?.getProperty("innerText")
+      await featureBullets?.getProperty('innerText')
     )?.jsonValue()
 
     // 「商品の情報」
     const productDetailsSelector = "[id^='productDetails']"
     const productDetails = await page.$(productDetailsSelector)
     const productDetailsText: string | undefined = await (
-      await productDetails?.getProperty("innerText")
+      await productDetails?.getProperty('innerText')
     )?.jsonValue()
 
     // 「商品の説明」(aplus)
-    const aplusSelector = "div#aplus img"
+    const aplusSelector = 'div#aplus img'
     const getAplusImageUrls = async () => {
       try {
-        await page.waitForSelector(".aplus-module", { timeout: 10000 })
-        return await page.$$eval(aplusSelector, (list) => list.map((el) => (el as HTMLImageElement).getAttribute('data-src')))
+        await page.waitForSelector('.aplus-module', { timeout: 10000 })
+        return await page.$$eval(aplusSelector, (list) =>
+          list.map((el) => (el as HTMLImageElement).getAttribute('data-src')),
+        )
       } catch (e) {
         console.log(e)
         return []
@@ -494,19 +488,18 @@ http("scraping-amazon-product-detail", async (req, res) => {
     const aplusImageUrls = await getAplusImageUrls()
     const filteredAplusImageUrls = aplusImageUrls.filter((url) => url !== null) // aplus内の比較グラフの画像の場合, data-srcはないのでnullとなる
 
-
     // 「商品の説明」（productDescription）
     const productDescriptionSelector = "[id^='productDescription']"
     const productDescription = await page.$(productDescriptionSelector)
     const productDescriptionText: string | undefined = await (
-      await productDescription?.getProperty("innerText")
+      await productDescription?.getProperty('innerText')
     )?.jsonValue()
 
     // 「重要なお知らせ」
     const importantInformationSelector = "[id^='importantInformation']"
     const importantInformation = await page.$(importantInformationSelector)
     const importantInformationText: string | undefined = await (
-      await importantInformation?.getProperty("innerText")
+      await importantInformation?.getProperty('innerText')
     )?.jsonValue()
 
     await browser.close()
