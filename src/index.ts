@@ -29,7 +29,7 @@ http("scraping-rakuten-product-detail", async (req, res) => {
     saleDescImageUrls: string[]
   }> => {
     try {
-      await page.waitForSelector(".sale_desc", { timeout: 120000 })
+      await page.waitForSelector(".sale_desc", { timeout: 10000 })
       const saleDescText: string = await page.$eval(
         ".sale_desc div",
         (el) => el.textContent
@@ -80,17 +80,24 @@ http("scraping-rakuten-product-detail", async (req, res) => {
   )
 
   // 価格横の画像
-  // const tmp = "[irc^='Image']"
-  // const hoge = await page.$(tmp)
-  // await hoge?.$$eval('div', (list) => list.map((el) => {
-  //   console.log((el as HTMLImageElement))
-  //   return (el as HTMLImageElement).getAttribute('src')
-  // }))
+  const getNextToPriceImageUrls = async (): Promise<{ nextToPriceImageUrls: string[] }> => {
+    try {
+      await page.waitForSelector(".image--3z5RH", { timeout: 10000 })
+      const nextToPriceImageUrls = await page.$$eval(".image--3z5RH", (list) =>
+        list.map((el) => (el as HTMLImageElement).src)
+      )
+      return { nextToPriceImageUrls }
+    } catch (e) {
+      console.log(e)
+      return { nextToPriceImageUrls: [] }
+    }
+  }
+  const { nextToPriceImageUrls } = await getNextToPriceImageUrls()
 
   // 限定画像
-  const getLimitedImages = async (): Promise<{limitedImageUrls: string[]}> => {
+  const getLimitedImages = async (): Promise<{ limitedImageUrls: string[]} > => {
     try {
-      await page.waitForSelector("td.rakutenLimitedId_GPImage img", { timeout: 120000 })
+      await page.waitForSelector("td.rakutenLimitedId_GPImage img", { timeout: 10000 })
       const limitedImageUrls = await page.$$eval("td.rakutenLimitedId_GPImage img", (list) =>
         list.map((el) => (el as HTMLImageElement).src)
       )
@@ -148,7 +155,7 @@ http("scraping-rakuten-product-detail", async (req, res) => {
 
   res.status(200).json({
     item: {
-      imageUrls: [...saleDescImageUrls, ...itemDescImageUrls, ...extImageUrls, ...limitedImageUrls],
+      imageUrls: [...saleDescImageUrls, ...itemDescImageUrls, ...nextToPriceImageUrls, ...extImageUrls, ...limitedImageUrls],
       name: itemNameText?.trim(),
       description: saleDescText.trim() + itemDescText.trim() + specText.trim() + extText.trim() + reviewsText.trim(),
       price: `${price}円`,
