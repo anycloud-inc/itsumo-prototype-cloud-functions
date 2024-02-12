@@ -3,9 +3,7 @@ import puppeteer from 'puppeteer-core'
 import chromium from 'chrome-aws-lambda'
 
 http('scraping-rakuten-product-detail', async (req, res) => {
-  const jsonString = JSON.stringify(req.body)
-  const body = JSON.parse(jsonString)
-  // const body = JSON.parse(req.body)
+  const body = JSON.parse(req.body)
   const options =
     process.env.NODE_ENV === 'production'
       ? {
