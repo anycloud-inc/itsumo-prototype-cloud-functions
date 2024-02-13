@@ -28,7 +28,7 @@ http('scraping-rakuten-product-detail', async (req, res) => {
     try {
       await page.waitForSelector('.sale_desc', { timeout: 10000 })
       const saleDescText: string = (await page.$eval(
-        '.sale_desc div',
+        '.sale_desc',
         (el) => el.textContent,
       )) as string
 
@@ -124,7 +124,7 @@ http('scraping-rakuten-product-detail', async (req, res) => {
   }> => {
     try {
       await page.waitForSelector('td.exT_sdtext', { timeout: 10000 })
-      const extText = (await page.$eval('.td.exT_sdtext', (el) => el.textContent)) as string
+      const extText = (await page.$eval('td.exT_sdtext', (el) => el.textContent)) as string
 
       const extImageUrls = await page.$$eval('td.exT_sdtext img', (list) =>
         list.map((el) => (el as HTMLImageElement).src),
