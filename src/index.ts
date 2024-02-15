@@ -138,9 +138,18 @@ http('scraping-rakuten-product-detail', async (req, res) => {
   const { extText, extImageUrls } = await getExt()
 
   // レビュー
-  const reviewsSelector = "[data-ratid='ratReviewParts']"
-  const reviews = await page.$(reviewsSelector)
-  const reviewsText = (await (await reviews?.getProperty('innerText'))?.jsonValue()) as string
+  const getReviews = async (): Promise<{ reviewsText: string }> => {
+    const reviewsSelector = "[data-ratid='ratReviewParts']"
+    try {
+      await page.waitForSelector(reviewsSelector, { timeout: 10000 })
+      const reviewsText = (await page.$eval(reviewsSelector, (el) => el.textContent)) as string
+      return { reviewsText }
+    } catch (e) {
+      console.log(e)
+      return { reviewsText: '' }
+    }
+  }
+  const { reviewsText } = await getReviews()
 
   await browser.close()
 
