@@ -112,12 +112,8 @@ http("scraping-rakuten-product-reviews", async (req, res) => {
   }
 
   const isExistReviewLink = async () => {
-    const [pageItemReviews, reviewButton, reviewLink] = await Promise.all([
-      isExistSelector(".page_item_reviews"),
-      isExistSelector(".button--3SNaj"),
-      isExistSelector(".link--_SR9y"),
-    ])
-    return pageItemReviews || reviewButton || reviewLink
+    const reviewLink = await isExistSelector("span[irc='SeeReviewButton'] a")
+    return reviewLink
   }
 
   // レビューページのリンクを持つ要素が表示されるまで待つ
@@ -133,9 +129,8 @@ http("scraping-rakuten-product-reviews", async (req, res) => {
 
   // hrefに「https://review.rakuten.co.jp/item」を含むaタグのhref属性を取得する
   // NOTE: aタグをクリックして遷移すると、ページ遷移処理が上手く動作しないときがあるため、hrefを取得して直接遷移する
-  const href = await page.$eval(
-    'a[href^="https://review.rakuten.co.jp/item"]',
-    (el) => el.getAttribute("href")
+  const href = await page.$eval("span[irc='SeeReviewButton'] a", (el) =>
+    el.getAttribute("href")
   )
 
   if (href == null) {
