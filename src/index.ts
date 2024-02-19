@@ -194,41 +194,24 @@ http('scraping-rakuten-product-reviews', async (req, res) => {
   page.setDefaultNavigationTimeout(0)
   await page.goto(body.siteUrl)
 
-  const isExistSelector = async (selector: string) => {
+  // hrefに「https://review.rakuten.co.jp/item」を含むaタグのhref属性を取得する
+  // NOTE: aタグをクリックして遷移すると、ページ遷移処理が上手く動作しないときがあるため、hrefを取得して直接遷移する
+  const getReviewsUrl = async (selector: string) => {
     try {
       await page.waitForSelector(selector, { timeout: 10000 })
-      return true
+      return await page.$eval(selector, (el) => el.getAttribute('href'))
     } catch (e) {
       console.log(e)
-      return false
+      return null
     }
   }
 
-  const isExistReviewLink = async () => {
-    const [pageItemReviews, reviewButton, reviewLink] = await Promise.all([
-      isExistSelector('.page_item_reviews'),
-      isExistSelector('.button--3SNaj'),
-      isExistSelector('.link--_SR9y'),
-    ])
-    return pageItemReviews || reviewButton || reviewLink
-  }
+  const [seeReviewButtonLink, pageItemReviewsLink] = await Promise.all([
+    getReviewsUrl("span[irc='SeeReviewButton'] a[href^='https://review.rakuten.co.jp/item']"),
+    getReviewsUrl(".page_item_reviews a[href^='https://review.rakuten.co.jp/item']"),
+  ])
 
-  // レビューページのリンクを持つ要素が表示されるまで待つ
-  const isExistReviewLinkResult = await isExistReviewLink()
-  if (!isExistReviewLinkResult) {
-    await browser.close()
-    res.status(200).json({
-      comprehensiveEval: '',
-      totalEvalCount: '',
-      reviews: [],
-    })
-  }
-
-  // hrefに「https://review.rakuten.co.jp/item」を含むaタグのhref属性を取得する
-  // NOTE: aタグをクリックして遷移すると、ページ遷移処理が上手く動作しないときがあるため、hrefを取得して直接遷移する
-  const href = await page.$eval('a[href^="https://review.rakuten.co.jp/item"]', (el) =>
-    el.getAttribute('href'),
-  )
+  const href = seeReviewButtonLink || pageItemReviewsLink
 
   if (href == null) {
     await browser.close()
