@@ -175,7 +175,7 @@ http('scraping-rakuten-product-detail', async (req, res) => {
 })
 
 http('scraping-rakuten-product-reviews', async (req, res) => {
-  const body = JSON.parse(JSON.stringify(req.body))
+  const body = JSON.parse(req.body)
   const options =
     process.env.NODE_ENV === 'production'
       ? {
