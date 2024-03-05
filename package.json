@@ -5,11 +5,13 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "start": "npm run build && functions-framework --target=scraping-rakuten-product-detail",
-    "start:review": "npm run build && functions-framework --target=scraping-rakuten-product-reviews",
+    "start:rakuten-detail": "npm run build && functions-framework --target=scraping-rakuten-product-detail",
+    "start:rakuten-review": "npm run build && functions-framework --target=scraping-rakuten-product-reviews",
     "start:amazon-detail": "npm run build && functions-framework --target=scraping-amazon-product-detail",
-    "deploy": "npm run build && gcloud functions deploy scraping-rakuten-product-detail --region=asia-northeast1 --runtime=nodejs18 --source=. --trigger-http --allow-unauthenticated --set-env-vars NODE_ENV=production",
-    "deploy:review": "npm run build && gcloud functions deploy scraping-rakuten-product-reviews --region=asia-northeast1 --runtime=nodejs18 --source=. --trigger-http --allow-unauthenticated --set-env-vars NODE_ENV=production",
+    "start:amazon-review": "npm run build && functions-framework --target=scraping-amazon-product-reviews",
+    "deploy:rakuten-detail": "npm run build && gcloud functions deploy scraping-rakuten-product-detail --region=asia-northeast1 --runtime=nodejs18 --source=. --trigger-http --allow-unauthenticated --set-env-vars NODE_ENV=production",
+    "deploy:rakuten-review": "npm run build && gcloud functions deploy scraping-rakuten-product-reviews --region=asia-northeast1 --runtime=nodejs18 --source=. --trigger-http --allow-unauthenticated --set-env-vars NODE_ENV=production",
+    "deploy:amazon-detail": "npm run build && gcloud functions deploy scraping-amazon-product-detail --region=asia-northeast1 --runtime=nodejs18 --source=. --trigger-http --allow-unauthenticated --set-env-vars NODE_ENV=production",
     "deploy:amazon-review": "npm run build && gcloud functions deploy scraping-amazon-product-reviews --region=asia-northeast1 --runtime=nodejs18 --source=. --trigger-http --allow-unauthenticated --set-env-vars NODE_ENV=production"
   },
   "devDependencies": {
