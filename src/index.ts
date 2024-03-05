@@ -248,11 +248,34 @@ http('scraping-rakuten-product-reviews', async (req, res) => {
   const totalEvalCountElement = await page.$('.revEvaCount > .Count')
   const totalEvalCount = await (await totalEvalCountElement?.getProperty('innerText'))?.jsonValue()
 
-  // 1ページ目のレビューの取得（最大15件）
-  const list = await page.$$(reviewItemClassName)
-  let reviews = []
-  for (let i = 0; i < list.length; i++) {
-    reviews.push(await (await list[i].getProperty('textContent'))?.jsonValue())
+  // 1ページ目のレビューの取得（最大15件）する関数
+  const getReviews = async (): Promise<string[]> => {
+    const list = await page.$$(reviewItemClassName)
+    return await Promise.all(
+      list.map(async (el) => {
+        return (await (await el.getProperty('textContent'))?.jsonValue()) as string
+      }),
+    )
+  }
+
+  const reviews = await getReviews()
+
+  // 絞り込みボタンのクラス名
+  const reviewRvwSortStartClassName = '.revRvwSortStart'
+  // 評価別のレビューに絞り込むための関数を用意する
+  const gotoRatePage = async (rate: number) => {
+    await page.waitForSelector(reviewRvwSortStartClassName, { timeout: 10000 })
+    await page.select('select[name="ev"]', rate.toString())
+    await page.click(`${reviewRvwSortStartClassName} input[type='submit']`)
+    await page.waitForSelector(reviewSortBtnClassName, { timeout: 10000 })
+  }
+
+  // 評価別のレビューの初期化
+  const eachRateReviews: { [key: number]: string[] } = {}
+
+  for (let i = 1; i <= 5; i++) {
+    await gotoRatePage(i)
+    eachRateReviews[i] = await getReviews()
   }
 
   await browser.close()
@@ -261,6 +284,7 @@ http('scraping-rakuten-product-reviews', async (req, res) => {
     comprehensiveEval,
     totalEvalCount,
     reviews,
+    eachRateReviews,
   })
 })
 
