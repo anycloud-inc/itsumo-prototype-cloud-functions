@@ -236,7 +236,7 @@ http('scraping-rakuten-product-reviews', async (req, res) => {
   const reviewItemClassName = '.revRvwUserEntryCmt'
   const reviewPagerSectionClassName = '.revPagerSec'
   // レビューのページャセクションが表示されるまで待つ
-  await page.waitForSelector(reviewPagerSectionClassName)
+  await page.waitForSelector(reviewPagerSectionClassName, { timeout: 10000 })
 
   // 総合評価の取得
   const comprehensiveEvalElement = await page.$('.revEvaNumber')
