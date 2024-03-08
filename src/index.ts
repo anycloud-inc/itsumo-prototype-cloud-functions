@@ -379,7 +379,6 @@ http('scraping-amazon-product-reviews', async (req, res) => {
 
     // 1ページ目のレビューの取得（最大10件）
     const getReviews = async (): Promise<string[]> => {
-      console.log('getReviews')
       return await page.$$eval("span[data-hook='review-body']", (list) => {
         return list.map((data) => data.textContent?.trim()) as string[]
       })
