@@ -234,9 +234,9 @@ http('scraping-rakuten-product-reviews', async (req, res) => {
   // リロードしないと、遷移前のレビューを取得してしまう
   await page.reload()
   const reviewItemClassName = '.revRvwUserEntryCmt'
-
-  // レビューが表示されるまで待つ
-  await page.waitForSelector(reviewSortBtnClassName)
+  const reviewPagerSectionClassName = '.revPagerSec'
+  // レビューのページャセクションが表示されるまで待つ
+  await page.waitForSelector(reviewPagerSectionClassName, { timeout: 10000 })
 
   // 総合評価の取得
   const comprehensiveEvalElement = await page.$('.revEvaNumber')
@@ -267,7 +267,7 @@ http('scraping-rakuten-product-reviews', async (req, res) => {
     await page.waitForSelector(reviewRvwSortStartClassName, { timeout: 10000 })
     await page.select('select[name="ev"]', rate.toString())
     await page.click(`${reviewRvwSortStartClassName} input[type='submit']`)
-    await page.waitForSelector(reviewSortBtnClassName, { timeout: 10000 })
+    await page.waitForSelector(reviewPagerSectionClassName, { timeout: 10000 })
   }
 
   // 評価別のレビューの初期化
