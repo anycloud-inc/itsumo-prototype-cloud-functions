@@ -360,6 +360,7 @@ http('scraping-amazon-product-reviews', async (req, res) => {
         comprehensiveEval: '',
         totalEvalCount: '',
         reviews: [],
+        eachRateReviews: {},
       })
     }
 
@@ -377,12 +378,43 @@ http('scraping-amazon-product-reviews', async (req, res) => {
     const totalEvalCount = totalEvalCountText?.replace(/[^0-9]/g, '')
 
     // 1ページ目のレビューの取得（最大10件）
-    const reviews = await page.$$eval("span[data-hook='review-body']", (list) => {
-      return list.map((data) => data.textContent?.trim())
-    })
+    const getReviews = async (): Promise<string[]> => {
+      return await page.$$eval("span[data-hook='review-body']", (list) => {
+        return list.map((data) => data.textContent?.trim()) as string[]
+      })
+    }
+
+    const reviews = await getReviews()
+
+    // 評価別のレビューに絞り込むための関数を用意する
+    const gotoRatePage = async (rate: number) => {
+      const rateParams: { [key: number]: string } = {
+        1: 'one_star',
+        2: 'two_star',
+        3: 'three_star',
+        4: 'four_star',
+        5: 'five_star',
+      }
+
+      const url = new URL(page.url())
+      const urlParams = new URLSearchParams(url.search)
+      urlParams.set('filterByStar', rateParams[rate])
+      // urlを再度構築して遷移する
+      await page.goto(`${url.origin}${url.pathname}?${urlParams.toString()}`)
+      await page.reload()
+      await page.waitForSelector('div[data-cel-widget=cm_cr-footer_dp_link]', { timeout: 10000 })
+    }
+
+    // 評価別のレビューの初期化
+    const eachRateReviews: { [key: number]: string[] } = {}
+
+    for (let i = 1; i <= 5; i++) {
+      await gotoRatePage(i)
+      eachRateReviews[i] = await getReviews()
+    }
     await browser.close()
 
-    res.status(200).json({ comprehensiveEval, totalEvalCount, reviews })
+    res.status(200).json({ comprehensiveEval, totalEvalCount, reviews, eachRateReviews })
   } catch (e) {
     console.log(e)
     res.status(500).json({ success: false })
