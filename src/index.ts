@@ -236,7 +236,18 @@ http('scraping-rakuten-product-reviews', async (req, res) => {
   const reviewItemClassName = '.revRvwUserEntryCmt'
   const reviewPagerSectionClassName = '.revPagerSec'
   // レビューのページャセクションが表示されるまで待つ
-  await page.waitForSelector(reviewPagerSectionClassName, { timeout: 10000 })
+  try {
+    await page.waitForSelector(reviewPagerSectionClassName, { timeout: 10000 })
+  } catch (e) {
+    console.log(e)
+    await browser.close()
+    res.status(200).json({
+      comprehensiveEval: '',
+      totalEvalCount: '',
+      reviews: [],
+      eachRateReviews: { 1: [], 2: [], 3: [], 4: [], 5: [] },
+    })
+  }
 
   // 総合評価の取得
   const comprehensiveEvalElement = await page.$('.revEvaNumber')
@@ -274,8 +285,14 @@ http('scraping-rakuten-product-reviews', async (req, res) => {
   const eachRateReviews: { [key: number]: string[] } = {}
 
   for (let i = 1; i <= 5; i++) {
-    await gotoRatePage(i)
-    eachRateReviews[i] = await getReviews()
+    try {
+      await gotoRatePage(i)
+      eachRateReviews[i] = await getReviews()
+    } catch (e) {
+      console.log(e)
+      eachRateReviews[i] = []
+      continue
+    }
   }
 
   await browser.close()
